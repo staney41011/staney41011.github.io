@@ -4003,8 +4003,8 @@
       let winning = []
       coupons.map((coupon) => {
         coupon.codes.map((code) => {
-          if (id === code) {
-            winning.push(`${coupon.name}`)
+          if (id.slice(-code.length) === code) {
+            winning.push(`${coupon.name} [${code}]`)
           }
         })
       })
