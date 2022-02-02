@@ -83,8 +83,8 @@
     <h2 class="result-title">查詢結果</h2>
     <div id="result">
     </div>
-    <div id="mask" style="display: none;">
-      <button onclick="mask()"截圖分享</button>
+
+
     </div>
   </div>
   <div class="footer">
@@ -4056,14 +4056,6 @@
     rs = search(uids, coupons)
     render(rs)
     document.getElementById('mask').style.display = 'block'
-  }
-
-  function mask() {
-    uid.style.display = 'none'
-    render(rs.map((r) => {
-      r.id = r.id.replace(/[a-z\d]/gi, '*')
-      return r
-    }))
   }
 
   function clean() {
