@@ -71,8 +71,8 @@
   <div class="main">
     <h1>虎彩繽紛童玩季</h1>
     <p>
-      <small>*****</small><br />
-      <small class="notice">*****<a href="https://5000.gov.tw/" target="_blank">振興五倍券官網</a></small>
+      <small></small><br />
+      <small class="notice">前往<a href="https://www.facebook.com/hooocolor" target="_blank">虎彩繽紛童玩季 粉絲專頁</a></small>
     </p>
     <div>
       <textarea id="uid" rows="5" placeholder="請輸入扭蛋卷流水編號，若有多張請用","分開多筆"></textarea>
@@ -84,12 +84,12 @@
     <div id="result">
     </div>
     <div id="mask" style="display: none;">
-      <button onclick="mask()">**截圖分享</button>
+      <button onclick="mask()">截圖分享</button>
     </div>
   </div>
   <div class="footer">
     <small>
-    ***
+    
     </small>
   </div>
 </body>
@@ -4007,7 +4007,7 @@
       let winning = []
       coupons.map((coupon) => {
         coupon.codes.map((code) => {
-          if (id.slice(-code.length) === code) {
+          if (id === code) {
             winning.push(`${coupon.name} [${code}]`)
           }
         })
