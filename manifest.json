@@ -1,20 +1,21 @@
 {
   "name": "賢德志士",
   "short_name": "賢德志士",
-  "start_url": ".",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#fdfbf7",
   "theme_color": "#8bc34a",
+  "description": "賢德志士修辦系統",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/1046/1046392.png",
+      "src": "https://raw.githubusercontent.com/staney41011/XIANDE/main/%E8%B3%A2%E5%BE%B7LOGO.jpg",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/jpeg"
     },
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/1046/1046392.png",
+      "src": "https://raw.githubusercontent.com/staney41011/XIANDE/main/%E8%B3%A2%E5%BE%B7LOGO.jpg",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/jpeg"
     }
   ]
 }
