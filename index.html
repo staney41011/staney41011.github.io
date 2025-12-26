@@ -9,19 +9,30 @@
   
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
+    // --- 強力清潔劑：先移除所有舊的 Service Worker ---
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for(let registration of registrations) {
+          // 如果發現註冊在根目錄的錯誤 Worker，強制移除
+          if (registration.scope === 'https://staney41011.github.io/') {
+            console.log('清除舊的錯誤 Service Worker:', registration);
+            registration.unregister();
+          }
+        }
+      });
+    }
+
+    // --- OneSignal 初始化 ---
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     OneSignalDeferred.push(function(OneSignal) {
       OneSignal.init({
         appId: "2c0c1bb1-f413-474e-bc2d-45586547b981", 
         notifyButton: { enable: true },
-        allowLocalhostAsSecureOrigin: true,
         
-        // 🔴 終極修正：直接填寫「完整網址」，不留模糊空間
-        path: "https://staney41011.github.io/XIANDE/",
+        // 🔴 關鍵設定：指定子目錄路徑
+        path: "/XIANDE/",
 
-        // 🔴 強制限制 Service Worker 範圍在子目錄，防止權限錯誤
-        serviceWorkerParam: { scope: "/XIANDE/" },
-
+        // 中文化提示
         promptOptions: {
           slidedown: {
             prompts: [{
@@ -40,7 +51,6 @@
   </script>
 
   <style>
-    /* CSS 樣式保持不變 */
     :root { --bg-color: #fdfbf7; --card-bg: #ffffff; --primary: #8bc34a; --accent: #ffb74d; --blue: #81d4fa; --red: #ff8a80; --text: #5d5d5d; --shadow: 0 4px 12px rgba(0,0,0,0.08); }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { font-family: 'Varela Round', sans-serif; background: var(--bg-color); color: var(--text); margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;}
