@@ -9,48 +9,40 @@
   
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
-    // --- 強力清潔劑：先移除所有舊的 Service Worker ---
+    // 1. 強制移除所有舊的 Service Worker (避免卡快取)
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(registrations) {
         for(let registration of registrations) {
-          // 如果發現註冊在根目錄的錯誤 Worker，強制移除
+          // 如果發現註冊在根目錄 (錯誤的位置)，就移除它
           if (registration.scope === 'https://staney41011.github.io/') {
-            console.log('清除舊的錯誤 Service Worker:', registration);
+            console.log('Unregistering wrong scope SW:', registration);
             registration.unregister();
           }
         }
       });
     }
 
-    // --- OneSignal 初始化 ---
+    // 2. 初始化 OneSignal
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     OneSignalDeferred.push(function(OneSignal) {
       OneSignal.init({
-        appId: "2c0c1bb1-f413-474e-bc2d-45586547b981", 
+        appId: "2c0c1bb1-f413-474e-bc2d-45586547b981",
         notifyButton: { enable: true },
+        allowLocalhostAsSecureOrigin: true,
         
-        // 🔴 關鍵設定：指定子目錄路徑
+        // 🔴 關鍵修正：告訴它去哪裡找檔案
         path: "/XIANDE/",
-
-        // 中文化提示
-        promptOptions: {
-          slidedown: {
-            prompts: [{
-              type: "push",
-              autoPrompt: true,
-              text: {
-                actionMessage: "是否啟用「賢德志士」的修辦通知？",
-                acceptButton: "好，開啟通知",
-                cancelButton: "稍後再說"
-              }
-            }]
-          }
-        }
+        
+        // 🔴 強制指定 Service Worker 檔案名稱與範圍
+        // 這樣它就不會去根目錄亂找了
+        serviceWorkerPath: "OneSignalSDKWorker.js",
+        serviceWorkerParam: { scope: "/XIANDE/" }
       });
     });
   </script>
 
   <style>
+    /* CSS 樣式 (保持不變) */
     :root { --bg-color: #fdfbf7; --card-bg: #ffffff; --primary: #8bc34a; --accent: #ffb74d; --blue: #81d4fa; --red: #ff8a80; --text: #5d5d5d; --shadow: 0 4px 12px rgba(0,0,0,0.08); }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { font-family: 'Varela Round', sans-serif; background: var(--bg-color); color: var(--text); margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;}
