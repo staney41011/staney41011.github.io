@@ -16,9 +16,12 @@
         notifyButton: { enable: true },
         allowLocalhostAsSecureOrigin: true,
         
-        // 🔴 關鍵修正：強制指定路徑為 /XIANDE/
-        // 這會告訴瀏覽器去 staney41011.github.io/XIANDE/ 找檔案
+        // 🔴 強力修正：指定「絕對路徑」
+        // 告訴 OneSignal 檔案一定在 /XIANDE/ 資料夾裡面
         path: "/XIANDE/", 
+
+        // 額外保險：指定 Service Worker 的 Scope
+        serviceWorkerParam: { scope: "/XIANDE/" },
 
         promptOptions: {
           slidedown: {
