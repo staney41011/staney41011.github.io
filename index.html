@@ -12,47 +12,41 @@
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     OneSignalDeferred.push(async function(OneSignal) {
       
-      // 1. 強力清除舊的 Service Worker (避免舊的根目錄註冊卡住)
+      // 1. 強制清除所有舊的 Service Worker (這是為了解決您現在卡住的 404)
+      // 只要發現有舊的註冊，全部殺掉重來
       if ('serviceWorker' in navigator) {
         try {
           const registrations = await navigator.serviceWorker.getRegistrations();
           for(let registration of registrations) {
-             // 只要發現不是在 /XIANDE/ 下的註冊，全部移除
-             if (registration.scope.indexOf('/XIANDE/') === -1) {
-               console.log('Unregistering root scope SW:', registration);
-               await registration.unregister();
-             }
+             console.log('清除舊的 Service Worker:', registration);
+             await registration.unregister();
           }
         } catch(e) { console.error(e); }
       }
 
-      // 2. 初始化 OneSignal (使用絕對路徑)
+      // 2. 初始化
       await OneSignal.init({
         appId: "2c0c1bb1-f413-474e-bc2d-45586547b981",
         
-        // 🔴 關鍵修正：不再使用相對路徑，直接寫死完整網址
-        // 這樣瀏覽器就絕對不會去根目錄找了
-        path: "https://staney41011.github.io/XIANDE/",
+        // 🔴 終極修正：直接寫死完整網址，不讓瀏覽器有機會找錯
+        path: "/XIANDE/",
         
-        // 強制指定 Worker 的完整位置
-        serviceWorkerPath: "OneSignalSDKWorker.js",
-        
-        // 強制指定 Worker 的完整網址 (雙保險)
+        // 強制指定 Worker 的完整位置 (雙重保險)
         workerUrl: "https://staney41011.github.io/XIANDE/OneSignalSDKWorker.js",
 
-        // 設定作用範圍僅限此資料夾
+        // 限制作用範圍
         serviceWorkerParam: { scope: "/XIANDE/" },
 
         notifyButton: { enable: true },
         allowLocalhostAsSecureOrigin: true,
       });
       
-      console.log("OneSignal 初始化完成 (Subdirectory Mode)");
+      console.log("OneSignal 初始化完成");
     });
   </script>
 
   <style>
-    /* CSS 樣式 (保持不變) */
+    /* CSS 保持不變 */
     :root { --bg-color: #fdfbf7; --card-bg: #ffffff; --primary: #8bc34a; --accent: #ffb74d; --blue: #81d4fa; --red: #ff8a80; --text: #5d5d5d; --shadow: 0 4px 12px rgba(0,0,0,0.08); }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { font-family: 'Varela Round', sans-serif; background: var(--bg-color); color: var(--text); margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;}
