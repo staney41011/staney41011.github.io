@@ -30,11 +30,10 @@
         notifyButton: { enable: true },
         allowLocalhostAsSecureOrigin: true,
         
-        // 🔴 關鍵修正：告訴它去哪裡找檔案
-        path: "/XIANDE/",
+        // 告訴 OneSignal 檔案放在 /XIANDE/ 子目錄下
+        path: "/XIANDE/", 
         
-        // 🔴 強制指定 Service Worker 檔案名稱與範圍
-        // 這樣它就不會去根目錄亂找了
+        // 明確指定檔案名稱與作用範圍
         serviceWorkerPath: "OneSignalSDKWorker.js",
         serviceWorkerParam: { scope: "/XIANDE/" }
       });
