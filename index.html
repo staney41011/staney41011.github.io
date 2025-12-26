@@ -7,18 +7,47 @@
   <link rel="manifest" href="manifest.json">
   <link href="https://fonts.googleapis.com/css2?family=Varela+Round&display=swap" rel="stylesheet">
   
-<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-<script>
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function(OneSignal) {
-    await OneSignal.init({
-      appId: "2c0c1bb1-f413-474e-bc2d-45586547b981",
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      
+      // 1. 先清除舊的錯誤註冊 (避免之前的錯誤卡住)
+      try {
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          for(let registration of registrations) {
+            // 如果發現註冊在根目錄 (錯誤的位置)，就移除它
+            if (registration.scope === 'https://staney41011.github.io/') {
+              console.log('移除錯誤範圍的 SW:', registration);
+              await registration.unregister();
+            }
+          }
+        }
+      } catch(e) { console.error(e); }
+
+      // 2. 官方標準初始化寫法 (針對您的子目錄做了微調)
+      await OneSignal.init({
+        appId: "2c0c1bb1-f413-474e-bc2d-45586547b981",
+        
+        // 🔴 關鍵修正：因為您的網站在 /XIANDE/ 資料夾
+        // 必須告訴 SDK 去哪裡找 Worker 檔案，否則會報 404
+        path: "/XIANDE/",
+        serviceWorkerParam: { scope: "/XIANDE/" },
+        serviceWorkerPath: "OneSignalSDKWorker.js",
+
+        // 開啟訂閱鈴鐺
+        notifyButton: { enable: true },
+        // 允許本機測試
+        allowLocalhostAsSecureOrigin: true,
+      });
+      
+      console.log("OneSignal 初始化完成");
     });
-  });
-</script>
+  </script>
 
   <style>
-    /* CSS 樣式 (保持不變) */
+    /* CSS 樣式 */
     :root { --bg-color: #fdfbf7; --card-bg: #ffffff; --primary: #8bc34a; --accent: #ffb74d; --blue: #81d4fa; --red: #ff8a80; --text: #5d5d5d; --shadow: 0 4px 12px rgba(0,0,0,0.08); }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { font-family: 'Varela Round', sans-serif; background: var(--bg-color); color: var(--text); margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;}
@@ -464,16 +493,16 @@
 
           html += `
           <div class="tree-container ${treeClass}" onclick="openHallModal('${hall.name}')">
-             <div class="tree-canopy">${fruits}</div>
-             <div class="tree-trunk"></div>
-             <div class="tree-label">
-               <div>${hall.name}</div>
-               <div class="tree-stats">
-                 <span style="color:#e53935">●${sp}</span>
-                 <span style="color:#fbc02d">●${cv}</span>
-                 <span style="color:#039be5">●${cl}</span>
-               </div>
-             </div>
+              <div class="tree-canopy">${fruits}</div>
+              <div class="tree-trunk"></div>
+              <div class="tree-label">
+                <div>${hall.name}</div>
+                <div class="tree-stats">
+                  <span style="color:#e53935">●${sp}</span>
+                  <span style="color:#fbc02d">●${cv}</span>
+                  <span style="color:#039be5">●${cl}</span>
+                </div>
+              </div>
           </div>`;
         }
         if(html == "") html = "<div>尚無果樹</div>";
@@ -492,9 +521,9 @@
             h += `<div class="member-row">
               <span style="font-weight:bold;">${m.name}</span>
               <span>
-                 <span style="color:#e53935; margin-left:5px;">${m.s}</span>
-                 <span style="color:#fbc02d; margin-left:5px;">${m.c}</span>
-                 <span style="color:#039be5; margin-left:5px;">${m.cl}</span>
+                  <span style="color:#e53935; margin-left:5px;">${m.s}</span>
+                  <span style="color:#fbc02d; margin-left:5px;">${m.c}</span>
+                  <span style="color:#039be5; margin-left:5px;">${m.cl}</span>
               </span>
             </div>`;
           });
