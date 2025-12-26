@@ -13,11 +13,12 @@
     OneSignalDeferred.push(function(OneSignal) {
       OneSignal.init({
         appId: "2c0c1bb1-f413-474e-bc2d-45586547b981", 
-        notifyButton: { enable: true }, // 右下角鈴鐺
+        notifyButton: { enable: true },
         allowLocalhostAsSecureOrigin: true,
       });
       
-      // 強制設定中文提示 (需在 init 之後設定)
+      // 強制設定中文提示 (在 init 後直接執行)
+      // 注意：瀏覽器若曾拒絕過，需清除快取或重置權限才會再跳出
       OneSignal.Slidedown.promptPush({
         force: true,
         text: {
@@ -30,7 +31,6 @@
   </script>
 
   <style>
-    /* CSS 保持不變，直接複製即可 */
     :root { --bg-color: #fdfbf7; --card-bg: #ffffff; --primary: #8bc34a; --accent: #ffb74d; --blue: #81d4fa; --red: #ff8a80; --text: #5d5d5d; --shadow: 0 4px 12px rgba(0,0,0,0.08); }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { font-family: 'Varela Round', sans-serif; background: var(--bg-color); color: var(--text); margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;}
@@ -99,7 +99,7 @@
     @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
     
-    /* 3. iOS 安裝提示遮罩 */
+    /* iOS 安裝提示遮罩 */
     #ios-install-overlay { 
       position: fixed; bottom: 0; left: 0; width: 100%; background: #fff; 
       box-shadow: 0 -5px 20px rgba(0,0,0,0.2); padding: 20px; z-index: 5000;
@@ -109,6 +109,9 @@
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     .ios-arrow { font-size: 30px; animation: bounce 1.5s infinite; display:block; margin-bottom: 10px;}
     @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(10px); } }
+    
+    /* 一鍵安裝按鈕 (Android/Desktop) */
+    #install-btn { display: none; background: #333; color: #fff; margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -152,6 +155,7 @@
         <select id="r-min" class="input-field"><option>請先選團隊</option></select>
         <button class="btn btn-success" onclick="doReg()">加入志士</button>
       </div>
+      <button id="install-btn" class="btn" onclick="installApp()">📲 安裝 App 到桌面</button>
     </div>
   </div>
 
@@ -274,25 +278,21 @@
   </div>
 
   <script>
-    // ========== ⚠️ 請確認你的 GAS URL 正確 ==========
+    // ⚠️ 您的 API URL (已填入)
     const API_URL = "https://script.google.com/macros/s/AKfycbxHe88NVoiJkAt2pvBnCYUk_xGul1FhXTAj0kyAXA9GEIddXB1AD8j4gtjhbDEASPSr/exec";
-    // ===============================================
 
     var gUser=null, gPass=null, gData={}, menuConfig={};
     var timerInt=null, isTimer=false, lastLogTime=0;
     var curYear = new Date().getFullYear();
     var curMonth = new Date().getMonth() + 1;
-
-    function callApi(action, params) {
-        if(!params) params = {};
-        params.action = action;
-        return fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify(params)
-        }).then(res => res.json());
-    }
-
-    function loading(x){ document.getElementById('loading').style.display = x?'flex':'none'; }
+    
+    // --- 安裝與初始化 ---
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('install-btn').style.display = 'block';
+    });
 
     window.onload = function(){
         loading(true);
@@ -313,29 +313,50 @@
         });
         
         setInterval(checkNewLogs, 10000);
-        
         document.querySelectorAll('.filter-label input').forEach(inp => {
            inp.addEventListener('change', function(){
               if(this.checked) this.parentElement.classList.add('checked');
               else this.parentElement.classList.remove('checked');
            });
         });
-        
-        // --- 4. 啟動 iOS 安裝偵測 ---
-        checkIOSInstall();
+        checkIOSInstall(); // 檢查 iOS
+    }
+
+    function installApp() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            document.getElementById('install-btn').style.display = 'none';
+          }
+          deferredPrompt = null;
+        });
+      } else {
+        var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (!isIOS) {
+           alert("請使用 Chrome 瀏覽器選單中的「加入主畫面」功能");
+        }
+      }
     }
     
-    // --- iOS 安裝教學 ---
     function checkIOSInstall() {
-      // 偵測是否為 iOS
       var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-      // 偵測是否已經是 App 模式 (Standalone)
       var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-      
       if (isIOS && !isStandalone) {
         document.getElementById('ios-install-overlay').style.display = 'block';
       }
     }
+
+    function callApi(action, params) {
+        if(!params) params = {};
+        params.action = action;
+        return fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify(params)
+        }).then(res => res.json());
+    }
+
+    function loading(x){ document.getElementById('loading').style.display = x?'flex':'none'; }
 
     function toggleAdmDateInput() {
       var mode = document.getElementById('adm-mode').value;
@@ -618,7 +639,6 @@
       });
     }
 
-    // --- 發送廣播 ---
     function sendBroadcast() {
       var msg = document.getElementById('broadcast-msg').value;
       if (!msg) { alert("請輸入訊息內容"); return; }
@@ -632,7 +652,6 @@
             alert(res.msg);
             document.getElementById('broadcast-msg').value = "";
           } else {
-            // 如果失敗，跳出錯誤代碼讓您知道 (例如 Key 錯誤)
             alert("發送失敗: " + res.msg);
           }
         });
