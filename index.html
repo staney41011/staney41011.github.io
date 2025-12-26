@@ -13,28 +13,24 @@
     OneSignalDeferred.push(function(OneSignal) {
       OneSignal.init({
         appId: "2c0c1bb1-f413-474e-bc2d-45586547b981", 
-        notifyButton: { enable: true },
+        notifyButton: { enable: true }, // 右下角鈴鐺
         allowLocalhostAsSecureOrigin: true,
-        // --- 1. 中文化設定 ---
-        promptOptions: {
-          slidedown: {
-            prompts: [{
-              type: "push",
-              autoPrompt: true,
-              text: {
-                actionMessage: "我們希望能發送修辦提醒給您，請允許通知權限。",
-                acceptButton: "允許",
-                cancelButton: "稍後"
-              }
-            }]
-          }
+      });
+      
+      // 強制設定中文提示 (需在 init 之後設定)
+      OneSignal.Slidedown.promptPush({
+        force: true,
+        text: {
+          actionMessage: "是否啟用「賢德志士」的修辦通知？",
+          acceptButton: "好，開啟通知",
+          cancelButton: "稍後再說"
         }
       });
     });
   </script>
 
   <style>
-    /* 保持原樣 CSS */
+    /* CSS 保持不變，直接複製即可 */
     :root { --bg-color: #fdfbf7; --card-bg: #ffffff; --primary: #8bc34a; --accent: #ffb74d; --blue: #81d4fa; --red: #ff8a80; --text: #5d5d5d; --shadow: 0 4px 12px rgba(0,0,0,0.08); }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { font-family: 'Varela Round', sans-serif; background: var(--bg-color); color: var(--text); margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;}
@@ -103,8 +99,16 @@
     @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
     
-    /* 2. 一鍵安裝按鈕樣式 */
-    #install-btn { display: none; background: #333; color: #fff; margin-top: 10px; }
+    /* 3. iOS 安裝提示遮罩 */
+    #ios-install-overlay { 
+      position: fixed; bottom: 0; left: 0; width: 100%; background: #fff; 
+      box-shadow: 0 -5px 20px rgba(0,0,0,0.2); padding: 20px; z-index: 5000;
+      border-radius: 20px 20px 0 0; text-align: center; display: none;
+      animation: slideUp 0.5s ease-out;
+    }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .ios-arrow { font-size: 30px; animation: bounce 1.5s infinite; display:block; margin-bottom: 10px;}
+    @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(10px); } }
   </style>
 </head>
 <body>
@@ -112,10 +116,19 @@
   <div id="loading"><div class="spinner"></div><div style="margin-top:10px; font-size:12px; color:#888;">連線中...</div></div>
   <div id="toast-container"></div>
   
+  <div id="ios-install-overlay">
+    <div style="font-weight:bold; font-size:16px; margin-bottom:10px; color:#333;">📲 安裝「賢德志士」</div>
+    <div style="font-size:13px; color:#666; line-height:1.6; margin-bottom:15px;">
+      為了獲得最佳體驗（全螢幕與推播），<br>請點擊下方瀏覽器的 <span style="font-size:18px;">⎋</span> 分享按鈕，<br>並選擇 <b>「加入主畫面」</b>。
+    </div>
+    <div class="ios-arrow">⬇</div>
+    <button class="btn" style="background:#eee; color:#666;" onclick="document.getElementById('ios-install-overlay').style.display='none'">我知道了</button>
+  </div>
+
   <div id="modal-overlay" onclick="closeModal()">
     <div class="modal-box" onclick="event.stopPropagation()">
       <div class="modal-close" onclick="closeModal()">&times;</div>
-      <h3 id="modal-title" style="margin-top:0; color:var(--primary);">詳細資訊</h3>
+      <h3 id="modal-title" style="margin-top:0; color:var(--primary);">公堂名單</h3>
       <div id="modal-content">Loading...</div>
     </div>
   </div>
@@ -139,8 +152,6 @@
         <select id="r-min" class="input-field"><option>請先選團隊</option></select>
         <button class="btn btn-success" onclick="doReg()">加入志士</button>
       </div>
-      
-      <button id="install-btn" class="btn" onclick="installApp()">📲 安裝 App 到桌面</button>
     </div>
   </div>
 
@@ -211,42 +222,43 @@
       <div id="v-admin" class="view-section">
          <div class="card">
            <h3>📊 主領班儀表板</h3>
-           <div style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:15px;">
-             <h4 style="margin:0 0 10px 0;">報表查詢</h4>
-             <div style="margin-bottom:10px; display:flex; gap:10px; align-items:center;">
-               <select id="adm-mode" class="input-field" onchange="toggleAdmDateInput()" style="flex:1;">
-                 <option value="all">全部歷史</option>
-                 <option value="date">指定日期</option>
-                 <option value="month">指定月份</option>
-               </select>
-               <div id="adm-date-box" style="flex:1; display:none;"><input type="date" id="adm-date" class="input-field"></div>
-               <div id="adm-month-box" style="flex:1; display:none;"><input type="month" id="adm-month" class="input-field"></div>
-             </div>
-             <div style="display:flex; gap:5px; margin-bottom:10px;">
-               <select id="adm-maj" class="input-field" onchange="admUpdMin()"><option value="全部">全部團隊</option></select>
-               <select id="adm-min" class="input-field"><option value="全部">全部公堂</option></select>
-             </div>
-             <div class="filter-group">
-               <label class="filter-label"><input type="checkbox" id="f-sport">🏃 運動</label>
-               <label class="filter-label"><input type="checkbox" id="f-read">📖 讀書</label>
-               <label class="filter-label"><input type="checkbox" id="f-spoke">🗣️ 開口</label>
-               <label class="filter-label"><input type="checkbox" id="f-conv">🤝 渡眾</label>
-               <label class="filter-label"><input type="checkbox" id="f-class">🏫 入班</label>
-             </div>
-             <button class="btn btn-primary" onclick="runAdminQuery()">🔍 查詢報表</button>
-             <div id="admin-report" class="admin-report-box" style="display:none; margin-top:15px;"></div>
-             <div id="admin-list" style="margin-top:10px;"></div>
+           
+           <div style="margin-bottom:15px; display:flex; gap:10px; align-items:center;">
+             <select id="adm-mode" class="input-field" onchange="toggleAdmDateInput()" style="flex:1;">
+               <option value="all">全部歷史</option>
+               <option value="date">指定日期</option>
+               <option value="month">指定月份</option>
+             </select>
+             <div id="adm-date-box" style="flex:1; display:none;"><input type="date" id="adm-date" class="input-field"></div>
+             <div id="adm-month-box" style="flex:1; display:none;"><input type="month" id="adm-month" class="input-field"></div>
            </div>
 
-           <div>
-             <h4 style="margin:0 0 10px 0;">📢 全員推播</h4>
-             <textarea id="broadcast-msg" class="input-field" rows="3" placeholder="請輸入要傳送給所有人的訊息..."></textarea>
-             <div style="margin-top:5px; font-size:12px; color:#666;">
-               <label>預約發送 (選填)：</label>
-               <input type="datetime-local" id="broadcast-time" class="input-field" style="margin-top:5px;">
-             </div>
-             <button class="btn btn-warn" onclick="sendBroadcast()" style="margin-top:10px;">🚀 發送通知</button>
+           <div style="display:flex; gap:5px; margin-bottom:10px;">
+             <select id="adm-maj" class="input-field" onchange="admUpdMin()"><option value="全部">全部團隊</option></select>
+             <select id="adm-min" class="input-field"><option value="全部">全部公堂</option></select>
            </div>
+           
+           <div class="filter-group">
+             <label class="filter-label"><input type="checkbox" id="f-sport">🏃 運動</label>
+             <label class="filter-label"><input type="checkbox" id="f-read">📖 讀書</label>
+             <label class="filter-label"><input type="checkbox" id="f-spoke">🗣️ 開口</label>
+             <label class="filter-label"><input type="checkbox" id="f-conv">🤝 渡眾</label>
+             <label class="filter-label"><input type="checkbox" id="f-class">🏫 入班</label>
+           </div>
+
+           <button class="btn btn-primary" onclick="runAdminQuery()">🔍 查詢報表</button>
+           
+           <div id="admin-report" class="admin-report-box" style="display:none; margin-top:15px;"></div>
+           <div id="admin-list" style="margin-top:10px;"></div>
+           
+           <hr style="border:0; border-top:1px dashed #eee; margin:15px 0;">
+           <h4 style="margin:0 0 10px 0;">📢 全員推播 (OneSignal)</h4>
+           <textarea id="broadcast-msg" class="input-field" rows="3" placeholder="請輸入訊息..."></textarea>
+           <div style="margin-top:5px; font-size:12px; color:#666;">
+             <label>預約 (選填)：</label>
+             <input type="datetime-local" id="broadcast-time" class="input-field">
+           </div>
+           <button class="btn btn-warn" onclick="sendBroadcast()" style="margin-top:10px;">🚀 發送通知</button>
          </div>
       </div>
 
@@ -262,43 +274,14 @@
   </div>
 
   <script>
-    // ========== ⚠️ 重要：請貼上你的 GAS 部署網址 ==========
+    // ========== ⚠️ 請確認你的 GAS URL 正確 ==========
     const API_URL = "https://script.google.com/macros/s/AKfycbxHe88NVoiJkAt2pvBnCYUk_xGul1FhXTAj0kyAXA9GEIddXB1AD8j4gtjhbDEASPSr/exec";
-    // ===================================================
+    // ===============================================
 
     var gUser=null, gPass=null, gData={}, menuConfig={};
     var timerInt=null, isTimer=false, lastLogTime=0;
     var curYear = new Date().getFullYear();
     var curMonth = new Date().getMonth() + 1;
-    
-    // --- 2. 一鍵安裝邏輯 ---
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      document.getElementById('install-btn').style.display = 'block';
-    });
-
-    function installApp() {
-      // Android / Desktop Chrome
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then((choiceResult) => {
-          if (choiceResult.outcome === 'accepted') {
-            document.getElementById('install-btn').style.display = 'none';
-          }
-          deferredPrompt = null;
-        });
-      } else {
-        // iOS 偵測與教學
-        var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        if (isIOS) {
-          alert("👉 iOS 使用者請點擊下方「分享」按鈕 (方框箭頭)，然後選擇「加入主畫面」即可安裝！");
-        } else {
-          alert("您的瀏覽器可能不支援一鍵安裝，請使用 Chrome 瀏覽器或手動加入主畫面。");
-        }
-      }
-    }
 
     function callApi(action, params) {
         if(!params) params = {};
@@ -337,6 +320,21 @@
               else this.parentElement.classList.remove('checked');
            });
         });
+        
+        // --- 4. 啟動 iOS 安裝偵測 ---
+        checkIOSInstall();
+    }
+    
+    // --- iOS 安裝教學 ---
+    function checkIOSInstall() {
+      // 偵測是否為 iOS
+      var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      // 偵測是否已經是 App 模式 (Standalone)
+      var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+      
+      if (isIOS && !isStandalone) {
+        document.getElementById('ios-install-overlay').style.display = 'block';
+      }
     }
 
     function toggleAdmDateInput() {
@@ -620,20 +618,23 @@
       });
     }
 
-    // --- 3. 發送廣播 (JS) ---
+    // --- 發送廣播 ---
     function sendBroadcast() {
       var msg = document.getElementById('broadcast-msg').value;
       if (!msg) { alert("請輸入訊息內容"); return; }
-      
-      // 取得預約時間 (如有)
-      var timeStr = document.getElementById('broadcast-time').value; // 格式: 2025-12-25T14:00
+      var timeStr = document.getElementById('broadcast-time').value; // 2025-12-25T14:00
       
       if(confirm("確定要發送/排程這則通知給所有人嗎？")) {
         loading(true);
         callApi('broadcast', {msg: msg, time: timeStr}).then(res => {
           loading(false);
-          alert(res.msg || "發送成功！");
-          document.getElementById('broadcast-msg').value = ""; // 清空
+          if (res.success) {
+            alert(res.msg);
+            document.getElementById('broadcast-msg').value = "";
+          } else {
+            // 如果失敗，跳出錯誤代碼讓您知道 (例如 Key 錯誤)
+            alert("發送失敗: " + res.msg);
+          }
         });
       }
     }
