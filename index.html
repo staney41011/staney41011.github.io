@@ -15,22 +15,30 @@
         appId: "2c0c1bb1-f413-474e-bc2d-45586547b981", 
         notifyButton: { enable: true },
         allowLocalhostAsSecureOrigin: true,
-      });
-      
-      // 強制設定中文提示 (在 init 後直接執行)
-      // 注意：瀏覽器若曾拒絕過，需清除快取或重置權限才會再跳出
-      OneSignal.Slidedown.promptPush({
-        force: true,
-        text: {
-          actionMessage: "是否啟用「賢德志士」的修辦通知？",
-          acceptButton: "好，開啟通知",
-          cancelButton: "稍後再說"
+        
+        // 🔴 關鍵修正：指定檔案路徑 (因為你的網址後面有 /XIANDE/)
+        path: "/XIANDE/", 
+
+        // 中文化設定
+        promptOptions: {
+          slidedown: {
+            prompts: [{
+              type: "push",
+              autoPrompt: true,
+              text: {
+                actionMessage: "是否啟用「賢德志士」的修辦通知？",
+                acceptButton: "好，開啟通知",
+                cancelButton: "稍後再說"
+              }
+            }]
+          }
         }
       });
     });
   </script>
 
   <style>
+    /* CSS 保持不變 */
     :root { --bg-color: #fdfbf7; --card-bg: #ffffff; --primary: #8bc34a; --accent: #ffb74d; --blue: #81d4fa; --red: #ff8a80; --text: #5d5d5d; --shadow: 0 4px 12px rgba(0,0,0,0.08); }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { font-family: 'Varela Round', sans-serif; background: var(--bg-color); color: var(--text); margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;}
@@ -99,7 +107,6 @@
     @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
     
-    /* iOS 安裝提示遮罩 */
     #ios-install-overlay { 
       position: fixed; bottom: 0; left: 0; width: 100%; background: #fff; 
       box-shadow: 0 -5px 20px rgba(0,0,0,0.2); padding: 20px; z-index: 5000;
@@ -110,7 +117,6 @@
     .ios-arrow { font-size: 30px; animation: bounce 1.5s infinite; display:block; margin-bottom: 10px;}
     @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(10px); } }
     
-    /* 一鍵安裝按鈕 (Android/Desktop) */
     #install-btn { display: none; background: #333; color: #fff; margin-top: 10px; }
   </style>
 </head>
@@ -278,7 +284,6 @@
   </div>
 
   <script>
-    // ⚠️ 您的 API URL (已填入)
     const API_URL = "https://script.google.com/macros/s/AKfycbxHe88NVoiJkAt2pvBnCYUk_xGul1FhXTAj0kyAXA9GEIddXB1AD8j4gtjhbDEASPSr/exec";
 
     var gUser=null, gPass=null, gData={}, menuConfig={};
@@ -286,7 +291,6 @@
     var curYear = new Date().getFullYear();
     var curMonth = new Date().getMonth() + 1;
     
-    // --- 安裝與初始化 ---
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
@@ -319,7 +323,7 @@
               else this.parentElement.classList.remove('checked');
            });
         });
-        checkIOSInstall(); // 檢查 iOS
+        checkIOSInstall(); 
     }
 
     function installApp() {
