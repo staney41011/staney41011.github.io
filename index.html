@@ -16,11 +16,10 @@
         notifyButton: { enable: true },
         allowLocalhostAsSecureOrigin: true,
         
-        // 🔴 強力修正：指定「絕對路徑」
-        // 告訴 OneSignal 檔案一定在 /XIANDE/ 資料夾裡面
-        path: "/XIANDE/", 
+        // 🔴 終極修正：直接填寫「完整網址」，不留模糊空間
+        path: "https://staney41011.github.io/XIANDE/",
 
-        // 額外保險：指定 Service Worker 的 Scope
+        // 🔴 強制限制 Service Worker 範圍在子目錄，防止權限錯誤
         serviceWorkerParam: { scope: "/XIANDE/" },
 
         promptOptions: {
@@ -41,6 +40,7 @@
   </script>
 
   <style>
+    /* CSS 樣式保持不變 */
     :root { --bg-color: #fdfbf7; --card-bg: #ffffff; --primary: #8bc34a; --accent: #ffb74d; --blue: #81d4fa; --red: #ff8a80; --text: #5d5d5d; --shadow: 0 4px 12px rgba(0,0,0,0.08); }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { font-family: 'Varela Round', sans-serif; background: var(--bg-color); color: var(--text); margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;}
