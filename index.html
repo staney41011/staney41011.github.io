@@ -16,10 +16,9 @@
         notifyButton: { enable: true },
         allowLocalhostAsSecureOrigin: true,
         
-        // 🔴 關鍵修正：指定檔案路徑 (因為你的網址後面有 /XIANDE/)
-        path: "/XIANDE/", 
+        // 🔴 關鍵修正：使用相對路徑，強制它在當前資料夾找檔案
+        path: "./", 
 
-        // 中文化設定
         promptOptions: {
           slidedown: {
             prompts: [{
@@ -38,7 +37,6 @@
   </script>
 
   <style>
-    /* CSS 保持不變 */
     :root { --bg-color: #fdfbf7; --card-bg: #ffffff; --primary: #8bc34a; --accent: #ffb74d; --blue: #81d4fa; --red: #ff8a80; --text: #5d5d5d; --shadow: 0 4px 12px rgba(0,0,0,0.08); }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { font-family: 'Varela Round', sans-serif; background: var(--bg-color); color: var(--text); margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;}
