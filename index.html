@@ -9,7 +9,8 @@
   
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
-    const APP_VERSION = "20260108-ShareMulti-V1"; 
+    // 🔴 版本號更新，確保手機端會刷新
+    const APP_VERSION = "20260108-ShareLink-V1"; 
 
     (function checkUpdate() {
       const savedVersion = localStorage.getItem("app_version");
@@ -149,7 +150,7 @@
     .history-line::before, .history-line::after { content: ""; position: absolute; top: 50%; width: 35%; height: 1px; background: #eee; }
     .history-line::before { left: 0; } .history-line::after { right: 0; }
 
-    /* 🔴 新增：分享卡樣式 */
+    /* 🔴 分享卡樣式 (橫向) */
     .share-scroll-x { display: flex; overflow-x: auto; gap: 15px; padding-bottom: 10px; scroll-snap-type: x mandatory; }
     .share-card { min-width: 260px; max-width: 260px; background: #fff; border-radius: 12px; border: 1px solid #eee; padding: 15px; flex-shrink: 0; scroll-snap-align: start; display: flex; flex-direction: column; }
     .share-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; margin-bottom: 10px; background: #eee; }
@@ -160,7 +161,7 @@
 <body>
 
   <div id="loading"><div class="spinner"></div><div style="margin-top:10px; font-size:12px; color:#888;">連線中...</div></div>
-  <div id="modal-overlay" onclick="closeModal()"><div class="modal-box" onclick="event.stopPropagation()"><div class="modal-close" onclick="closeModal()">&times;</div><h3 id="modal-title" style="margin-top:0; color:var(--primary);">詳細資訊</h3><div id="modal-content">Loading...</div></div></div>
+  <div id="modal-overlay" onclick="closeModal()"><div class="modal-box" onclick="event.stopPropagation()"><div class="modal-close" onclick="closeModal()">×</div><h3 id="modal-title" style="margin-top:0; color:var(--primary);">詳細資訊</h3><div id="modal-content">Loading...</div></div></div>
 
   <div id="auth-screen">
     <div style="font-size:26px; color:var(--text); margin-bottom:20px;">🌳 賢德志士</div>
@@ -200,7 +201,7 @@
         </div>
         
         <div class="card" style="border-left: 5px solid #00c300;">
-           <div class="help-btn" onclick="alert('左滑查看更多。\n1. 點擊「複製」\n2. 點擊「LINE」傳送')">?</div>
+           <div class="help-btn" onclick="alert('左滑查看更多。\n1. 點擊「複製文字」\n2. 點擊「一鍵分享」傳給朋友')">?</div>
            <h3 style="margin-top:0; color:#00c300; margin-bottom:15px;">🗣️ 方便開口包</h3>
            <div id="share-loading" style="font-size:12px; color:#999; text-align:center;">載入中...</div>
            <div id="share-container" class="share-scroll-x" style="display:none;"></div>
@@ -272,7 +273,7 @@
            <button class="btn btn-warn" onclick="logout()" style="width:100%; margin-top:15px; font-size:12px;">登出</button>
         </div>
         <div class="card">
-           <div class="calendar-ctrl"><button onclick="changeMonth(-1)">&lt;</button><span id="cal-title" style="font-weight:bold;">--</span><button onclick="changeMonth(1)">&gt;</button></div>
+           <div class="calendar-ctrl"><button onclick="changeMonth(-1)"><</button><span id="cal-title" style="font-weight:bold;">--</span><button onclick="changeMonth(1)">></button></div>
            <div id="calendar-area" class="calendar-grid"></div>
            <div id="profile-stats" class="profile-stats"></div>
            <div class="profile-logs"><h5>📅 本月明細</h5><div id="profile-log-list"></div></div>
@@ -371,7 +372,7 @@
     }
     function loading(x){ document.getElementById('loading').style.display = x?'flex':'none'; }
 
-    // 🔴 Share Logic
+    // 🔴 Share Logic (一鍵分享圖文連結版)
     function loadShareData() {
        callApi('getShareData').then(res => {
           document.getElementById('share-loading').style.display = 'none';
@@ -386,14 +387,15 @@
           var html = "";
           shareDataList.forEach((item, index) => {
              var imgHtml = item.image ? `<img src="${item.image}" class="share-img" onclick="alert('長按圖片可儲存')">` : `<div style="text-align:center; color:#ccc; padding:20px; background:#f5f5f5; border-radius:8px; margin-bottom:10px;">無圖片</div>`;
+             
              html += `
              <div class="share-card">
                 ${imgHtml}
                 <div class="share-title">${item.title}</div>
                 <div class="share-text">${item.text}</div>
                 <div style="display:flex; gap:5px;">
-                   <button class="btn" style="flex:1; background:#fff; color:#555; border:1px solid #ddd; font-size:11px;" onclick="copyShareText(${index})">📋 複製</button>
-                   <button class="btn" style="flex:1; background:#00c300; color:#fff; font-size:11px;" onclick="openLine()">💬 LINE</button>
+                   <button class="btn" style="flex:1; background:#fff; color:#555; border:1px solid #ddd; font-size:11px;" onclick="copyShareText(${index})">📋 複製文字</button>
+                   <button class="btn" style="flex:1; background:#00c300; color:#fff; font-size:11px;" onclick="shareToLine(${index})">💬 一鍵分享</button>
                 </div>
              </div>`;
           });
@@ -404,7 +406,7 @@
     function copyShareText(index) {
        var text = shareDataList[index].text;
        navigator.clipboard.writeText(text).then(() => {
-          alert("文字已複製！\n請長按圖片儲存，然後去 LINE 貼上。");
+          alert("文字已複製！");
        }).catch(err => {
           var textArea = document.createElement("textarea");
           textArea.value = text;
@@ -416,7 +418,21 @@
        });
     }
 
-    function openLine() { window.location.href = "https://line.me/R/"; }
+    // 🌟 新增：一鍵分享邏輯
+    function shareToLine(index) {
+       var item = shareDataList[index];
+       var text = item.text;
+       var url = item.image || "";
+       
+       // 組合內容：文字 + 換行 + 圖片連結
+       var finalMsg = text;
+       if(url) {
+          finalMsg += "\n\n" + url;
+       }
+       
+       // 呼叫 LINE URL Scheme
+       window.location.href = "https://line.me/R/msg/text/?" + encodeURIComponent(finalMsg);
+    }
 
     // Events Logic
     function loadEvents() {
@@ -588,7 +604,7 @@
           if(item.status.includes("開口")) stClass = "s-spoke";
           if(item.status.includes("入班") || item.status.includes("求道")) stClass = "s-join";
           var rIcon = item.remind ? "⏰" : "";
-          listHtml += `<div class="crm-card" onclick='editCRM(${JSON.stringify(item).replace(/'/g, "&apos;")})'><div class="crm-header"><div class="crm-name">${item.name} ${rIcon}</div><div class="crm-status ${stClass}">${item.status}</div></div><div class="crm-note">${item.todo ? "📝 " + item.todo : (item.note || "無備註")}</div></div>`;
+          listHtml += `<div class="crm-card" onclick='editCRM(${JSON.stringify(item).replace(/'/g, "'")})'><div class="crm-header"><div class="crm-name">${item.name} ${rIcon}</div><div class="crm-status ${stClass}">${item.status}</div></div><div class="crm-note">${item.todo ? "📝 " + item.todo : (item.note || "無備註")}</div></div>`;
        });
        document.getElementById('crm-todo-list').innerHTML = todoHtml || '<div style="text-align:center; color:#999; font-size:12px;">無待辦事項</div>';
        document.getElementById('crm-list').innerHTML = listHtml || '<div style="text-align:center; color:#999; margin-top:20px;">點擊右下角 + 新增名單</div>';
@@ -680,7 +696,6 @@
              gUser=u; gPass=p; gData=r.gameData; 
              localStorage.setItem("xd_u",u); localStorage.setItem("xd_p",p); 
              if(window.OneSignal) OneSignal.User.addTag("user", u);
-             // 🔴 載入分享資料
              loadShareData();
              lastLogTime = new Date().getTime(); 
              if(gData.teamMajor === "主領班") { document.getElementById('n-admin').style.display = 'block'; } 
