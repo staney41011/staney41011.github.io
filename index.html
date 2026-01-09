@@ -9,7 +9,7 @@
   
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
-    const APP_VERSION = "20260109-Final-V1"; 
+    const APP_VERSION = "20260109-TextPlain-V1"; 
 
     (function checkUpdate() {
       const savedVersion = localStorage.getItem("app_version");
@@ -391,16 +391,35 @@
             initAdminDropdowns();
             var u = localStorage.getItem("xd_u"), p = localStorage.getItem("xd_p");
             if(u&&p){ document.getElementById('l-u').value=u; document.getElementById('l-p').value=p; doLogin(); } else { loading(false); }
-        });
+        }).catch(err => alert("連線錯誤: " + err)); // 🔴 加上全域錯誤捕捉
+        
         var savedTime = localStorage.getItem("reminder_time");
         if(savedTime) document.getElementById('reminder-time').value = savedTime;
     }
 
+    // 🔴 終極修正：Text/Plain Protocol + Error Alert
     function callApi(action, params) {
         if(!params) params = {};
         params.action = action;
-        return fetch(API_URL, { method: 'POST', body: JSON.stringify(params) }).then(res => res.json());
+        
+        // 這裡不使用 headers，也不用 formData，直接把 JSON 當字串送
+        // 這是最原始、最不容易被瀏覽器亂改的送法
+        return fetch(API_URL, { 
+            method: 'POST', 
+            body: JSON.stringify(params),
+            headers: {
+               "Content-Type": "text/plain;charset=utf-8" // 強制 text/plain
+            }
+        }).then(res => res.json()).then(json => {
+            if(json.error) {
+               console.error("API Error:", json);
+               // 如果是嚴重錯誤，彈窗提示
+               if(json.error.includes("Backend")) alert("系統錯誤: " + json.error);
+            }
+            return json;
+        });
     }
+    
     function loading(x){ document.getElementById('loading').style.display = x?'flex':'none'; }
 
     // 🔴 1. Share Logic (Native Web Share API)
@@ -426,7 +445,6 @@
           document.getElementById('share-container').style.display = 'flex';
           var html = "";
           activeList.forEach((item, index) => {
-             // 要用 item.index 來對應原始 shareDataList 的位置，避免按錯
              var originalIndex = shareDataList.indexOf(item);
              var firstImg = (item.images && item.images.length>0) ? item.images[0] : "";
              var imgHtml = firstImg ? `<img src="${firstImg}" class="share-img">` : `<div style="text-align:center; color:#ccc; padding:20px; background:#f5f5f5; border-radius:8px; margin-bottom:10px;">無圖片</div>`;
