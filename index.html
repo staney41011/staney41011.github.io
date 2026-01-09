@@ -9,7 +9,7 @@
   
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
-    const APP_VERSION = "20260109-AdminCMS-V1"; 
+    const APP_VERSION = "20260109-Final-V1"; 
 
     (function checkUpdate() {
       const savedVersion = localStorage.getItem("app_version");
@@ -75,7 +75,6 @@
     .tree-label { background: #fff; border: 1px solid #eee; padding: 4px 8px; border-radius: 8px; font-size: 12px; margin-top: 5px; display: inline-block; font-weight: bold; color: #333; box-shadow: 0 2px 5px rgba(0,0,0,0.05); line-height: 1.4; min-width: 90px; }
     .fruit { width: 12px; height: 12px; border-radius: 50%; margin: 2px; box-shadow: 1px 1px 2px rgba(0,0,0,0.2); flex-shrink: 0;}
     .fruit.red { background: var(--red); } .fruit.gold { background: #ffd700; } .fruit.blue { background: #29b6f6; } 
-    
     .achieve-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 14px;}
     .achieve-input-group { display: flex; align-items: center; gap: 8px; }
     .achieve-input { width: 50px; text-align: center; border: 2px solid #eee; border-radius: 8px; padding: 5px; font-weight: bold; color: var(--text); background:#fafafa;}
@@ -124,7 +123,6 @@
     .crm-status.s-join { background: #e8f5e9; color: #2e7d32; }
     .crm-note { font-size: 12px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .fab { position: fixed; bottom: 80px; right: 20px; width: 50px; height: 50px; background: var(--accent); color: #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); cursor: pointer; z-index: 500; }
-    
     .sticky-filters { position: -webkit-sticky; position: sticky; top: 0; z-index: 900; background: var(--bg-color); padding: 10px 0; margin: 0 -15px; padding-left: 15px; padding-right: 15px; border-bottom: 1px solid rgba(0,0,0,0.05); }
     .scroll-x { display: flex; overflow-x: auto; white-space: nowrap; gap: 8px; }
     .chip { padding: 6px 12px; border-radius: 16px; background: #eee; color: #666; font-size: 12px; cursor: pointer; transition: 0.2s; border: 1px solid #ddd; }
@@ -161,6 +159,7 @@
     .admin-menu-btn:active { transform: scale(0.98); background: #fafafa; }
     .admin-menu-icon { font-size: 24px; margin-bottom: 5px; display: block; }
     .cms-item { background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #eee; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+    .cms-item.inactive { opacity: 0.5; background: #f0f0f0; }
     .cms-info { flex: 1; overflow: hidden; margin-right: 10px; }
     .cms-title { font-weight: bold; font-size: 13px; margin-bottom: 2px; }
     .cms-desc { font-size: 11px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -360,7 +359,7 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbxHe88NVoiJkAt2pvBnCYUk_xGul1FhXTAj0kyAXA9GEIddXB1AD8j4gtjhbDEASPSr/exec";
     var gUser=null, gPass=null, gData={}, menuConfig={}, crmData=[];
     var allEvents = [], activeFilters = [], shareDataList = [];
-    var cmsUploadFiles = []; // 儲存 CMS 上傳的圖片
+    var cmsUploadFiles = []; 
     var timerInt=null, isTimer=false;
     var curYear = new Date().getFullYear(), curMonth = new Date().getMonth() + 1;
 
@@ -406,21 +405,29 @@
 
     // 🔴 1. Share Logic (Native Web Share API)
     function loadShareData() {
-       callApi('getShareData').then(res => {
+       // 如果是主領班，要求讀取全部 (isAdmin=true)
+       var isAdmin = (gData.teamMajor === "主領班");
+       callApi('getShareData', {isAdmin: isAdmin}).then(res => {
           document.getElementById('share-loading').style.display = 'none';
           shareDataList = res.list || [];
-          renderCmsList(); // 順便更新 CMS 列表
           
-          if(shareDataList.length === 0) {
+          if(isAdmin) renderCmsList(); // 更新後台列表
+          
+          // 前台顯示：只過濾出 isActive 的項目
+          var activeList = shareDataList.filter(item => item.isActive);
+          
+          if(activeList.length === 0) {
              document.getElementById('share-loading').innerText = "📭 目前沒有推廣內容";
              document.getElementById('share-loading').style.display = 'block';
+             document.getElementById('share-container').innerHTML = "";
              return;
           }
           
           document.getElementById('share-container').style.display = 'flex';
           var html = "";
-          shareDataList.forEach((item, index) => {
-             // 取第一張圖做封面
+          activeList.forEach((item, index) => {
+             // 要用 item.index 來對應原始 shareDataList 的位置，避免按錯
+             var originalIndex = shareDataList.indexOf(item);
              var firstImg = (item.images && item.images.length>0) ? item.images[0] : "";
              var imgHtml = firstImg ? `<img src="${firstImg}" class="share-img">` : `<div style="text-align:center; color:#ccc; padding:20px; background:#f5f5f5; border-radius:8px; margin-bottom:10px;">無圖片</div>`;
              
@@ -430,8 +437,8 @@
                 <div class="share-title">${item.title}</div>
                 <div class="share-text">${item.text}</div>
                 <div style="display:flex; gap:5px;">
-                   <button class="btn" style="flex:1; background:#fff; color:#555; border:1px solid #ddd; font-size:11px;" onclick="copyShareText(${index})">📋 複製文字</button>
-                   <button class="btn" style="flex:1; background:#00c300; color:#fff; font-size:11px;" onclick="nativeShare(${index})">💬 分享</button>
+                   <button class="btn" style="flex:1; background:#fff; color:#555; border:1px solid #ddd; font-size:11px;" onclick="copyShareText(${originalIndex})">📋 複製文字</button>
+                   <button class="btn" style="flex:1; background:#00c300; color:#fff; font-size:11px;" onclick="nativeShare(${originalIndex})">💬 分享</button>
                 </div>
              </div>`;
           });
@@ -446,37 +453,26 @@
 
     async function nativeShare(index) {
        var item = shareDataList[index];
-       
-       // 1. 自動複製文字 (雙重保險)
        try { await navigator.clipboard.writeText(item.text); } catch(e){}
 
-       // 2. 準備圖片檔案
        var filesArray = [];
        if(item.images && item.images.length > 0) {
-          loading(true); // 下載圖片需要時間
+          loading(true);
           try {
              for(var i=0; i<item.images.length; i++) {
                 var url = item.images[i];
                 var blob = await fetch(url).then(r => r.blob());
-                // 必須要有副檔名
                 var file = new File([blob], `share_${i}.jpg`, { type: blob.type });
                 filesArray.push(file);
              }
-          } catch(e) {
-             alert("圖片下載失敗，將只分享文字");
-          }
+          } catch(e) { alert("圖片下載失敗"); }
           loading(false);
        }
 
-       // 3. 呼叫原生分享
        if (navigator.canShare && navigator.canShare({ files: filesArray })) {
-          navigator.share({
-             text: item.text,
-             files: filesArray
-          }).catch((err) => { console.log("分享取消", err); });
+          navigator.share({ text: item.text, files: filesArray }).catch(() => {});
        } else {
-          // 如果不支援檔案分享，改用舊版連結分享
-          alert("您的瀏覽器不支援原生圖片分享，文字已複製，將跳轉 LINE。");
+          alert("不支援原生分享，文字已複製。");
           window.location.href = "https://line.me/R/msg/text/?" + encodeURIComponent(item.text);
        }
     }
@@ -490,13 +486,17 @@
     function renderCmsList() {
        var html = "";
        shareDataList.forEach((item, idx) => {
+          var statusIcon = item.isActive ? "👁️" : "🔒";
+          var statusClass = item.isActive ? "" : "inactive";
+          
           html += `
-          <div class="cms-item">
+          <div class="cms-item ${statusClass}">
              <div class="cms-info">
-                <div class="cms-title">${item.title}</div>
+                <div class="cms-title">${statusIcon} ${item.title}</div>
                 <div class="cms-desc">${item.text}</div>
              </div>
              <div class="cms-actions">
+                <button onclick="manageShare('toggle', {index:${idx}})">${item.isActive?'隱藏':'啟用'}</button>
                 <button onclick="manageShare('move', {index:${idx}, direction:-1})">⬆️</button>
                 <button onclick="manageShare('move', {index:${idx}, direction:1})">⬇️</button>
                 <button onclick="openCmsModal('edit', ${idx})">✏️</button>
@@ -510,7 +510,7 @@
     function openCmsModal(mode, idx) {
        var isAdd = mode === 'add';
        var item = isAdd ? {title:"", text:""} : shareDataList[idx];
-       cmsUploadFiles = []; // 重置上傳
+       cmsUploadFiles = []; 
 
        var html = `
           <input id="cms-title" class="input-field" placeholder="標題" value="${item.title}">
@@ -552,9 +552,7 @@
        if(!title || !text) { alert("請填寫完整"); return; }
 
        var payload = { title: title, text: text, index: idx };
-       if(mode === 'add') {
-          payload.images = cmsUploadFiles;
-       }
+       if(mode === 'add') { payload.images = cmsUploadFiles; }
 
        loading(true);
        callApi('manageShare', {subAction: mode, data: payload}).then(res => {
@@ -562,7 +560,7 @@
           if(res.success) {
              alert(res.msg);
              closeModal();
-             loadShareData(); // 重新整理
+             loadShareData(); 
           } else {
              alert("失敗: " + res.msg);
           }
