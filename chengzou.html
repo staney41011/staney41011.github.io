@@ -2,32 +2,71 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Display Web</title>
+    <title>Display Web (強制縮放版)</title>
     <style type="text/css">
-        /* 嚴格重置邊距，並將畫布鎖死在螢幕可視範圍內 */
-        html, body {
+        body, html {
             margin: 0;
             padding: 0;
             width: 100vw;
             height: 100vh;
-            overflow: hidden; /* 關鍵：完全禁止外層網頁出現捲軸 */
+            overflow: hidden; /* 隱藏所有外層捲軸 */
             background-color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center; /* 讓縮放後的內容保持在正中間 */
         }
 
-        /* 讓 iframe 絕對填滿外層容器，不留邊框與縫隙 */
+        /* 這個容器負責假裝是一個大螢幕 */
+        #scale-wrapper {
+            /* 你可以根據你的表格實際需要的寬度調整這裡 (例如 1920x1080 或是 1440x900) */
+            width: 1920px; 
+            height: 1080px; 
+            transform-origin: center center;
+            flex-shrink: 0;
+        }
+
         iframe {
-            display: block;
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 100%;
             border: none;
-            margin: 0;
-            padding: 0;
+            /* 強制關閉 iframe 的捲軸 */
+            overflow: hidden;
         }
     </style>
 </head>
 <body>
-    <iframe src="https://script.google.com/macros/s/AKfycbwKrwYW1K4mKH4ZwrO0FnHIzIGS72hmTDaioqbwIQHjpTRYhNxHd2C0Fw12csEBVqPE/exec" frameborder="0" allowfullscreen></iframe>
+    
+    <div id="scale-wrapper">
+        <iframe src="https://script.google.com/macros/s/AKfycbwKrwYW1K4mKH4ZwrO0FnHIzIGS72hmTDaioqbwIQHjpTRYhNxHd2C0Fw12csEBVqPE/exec" scrolling="no"></iframe>
+    </div>
+
+    <script>
+        function scaleToFit() {
+            const wrapper = document.getElementById('scale-wrapper');
+            // 取得目前裝置的真實螢幕大小
+            const winWidth = window.innerWidth;
+            const winHeight = window.innerHeight;
+
+            // 取得我們設定的虛擬大螢幕大小 (1920x1080)
+            const wrapWidth = wrapper.offsetWidth;
+            const wrapHeight = wrapper.offsetHeight;
+
+            // 計算長寬縮放比例，並取「最小」的那個比例，確保畫面絕對不會被切到
+            const scaleX = winWidth / wrapWidth;
+            const scaleY = winHeight / wrapHeight;
+            const scale = Math.min(scaleX, scaleY);
+
+            // 執行強制縮放
+            wrapper.style.transform = `scale(${scale})`;
+        }
+
+        // 網頁載入時執行一次縮放
+        scaleToFit();
+
+        // 如果使用者翻轉手機或改變視窗大小，重新計算縮放
+        window.addEventListener('resize', scaleToFit);
+    </script>
+
 </body>
 </html>
