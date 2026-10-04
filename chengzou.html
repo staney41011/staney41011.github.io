@@ -308,13 +308,21 @@
 
     #source-status{
       position:absolute;
-      left:8px;
-      bottom:4px;
-      font-family:Arial,sans-serif;
-      font-size:10px;
-      color:rgba(0,0,0,.18);
+      left:12px;
+      bottom:8px;
+      font-family:Arial,"Noto Sans TC",sans-serif;
+      font-size:13px;
+      color:#333;
+      background:rgba(255,255,255,.58);
+      border:1px solid rgba(0,0,0,.16);
+      border-radius:10px;
+      padding:4px 9px;
       user-select:none;
+      z-index:20;
     }
+
+    #source-status.ok{ color:#075f1d; }
+    #source-status.err{ color:#9a1111; }
 
     @media(max-aspect-ratio:16/9){
       /* scaling handled by JS */
@@ -632,33 +640,80 @@
       stage.style.transform = "scale(" + scale + ")";
     }
 
-    async function refreshFromSheet(){
+    let sheetRefreshTimer = null;
+    let jsonpCounter = 0;
+
+    function setSourceStatus(text,type){
       const status = document.getElementById("source-status");
-      try{
-        const url =
+      status.textContent = text;
+      status.className = type || "";
+    }
+
+    function loadSheetViaJsonp(){
+      return new Promise((resolve,reject)=>{
+        const callbackName = "__chengzouSheetCallback_" + (++jsonpCounter);
+        const script = document.createElement("script");
+
+        const timeout = setTimeout(()=>{
+          cleanup();
+          reject(new Error("Google Sheet 讀取逾時"));
+        },10000);
+
+        function cleanup(){
+          clearTimeout(timeout);
+          try{ delete window[callbackName]; }catch(e){ window[callbackName] = undefined; }
+          if(script.parentNode) script.parentNode.removeChild(script);
+        }
+
+        window[callbackName] = function(json){
+          cleanup();
+          try{
+            const rows = json && json.table && json.table.rows ? json.table.rows : [];
+            if(!rows.length) throw new Error("Google Sheet 沒有回傳資料");
+            resolve(dataFromRows(rows));
+          }catch(err){
+            reject(err);
+          }
+        };
+
+        script.onerror = function(){
+          cleanup();
+          reject(new Error("Google Sheet 無法連線，可能是權限未開放"));
+        };
+
+        script.src =
           "https://docs.google.com/spreadsheets/d/" + SHEET_ID +
-          "/gviz/tq?tqx=out:json&gid=" + SHEET_GID +
+          "/gviz/tq?tqx=out:json;responseHandler:" + callbackName +
+          "&gid=" + SHEET_GID +
           "&range=A1:D39&_=" + Date.now();
 
-        const res = await fetch(url,{cache:"no-store",credentials:"omit"});
-        if(!res.ok) throw new Error("HTTP " + res.status);
-        const json = parseGViz(await res.text());
-        const rows = json.table && json.table.rows ? json.table.rows : [];
-        if(!rows.length) throw new Error("No sheet rows");
+        document.head.appendChild(script);
+      });
+    }
 
-        const live = dataFromRows(rows);
-        if(!live.className) throw new Error("Missing class name");
+    async function refreshFromSheet(){
+      setSourceStatus("● 正在同步 Google Sheet…","");
+      try{
+        const live = await loadSheetViaJsonp();
+        if(!live.className) throw new Error("讀到資料，但班名為空白");
 
         render({...FALLBACK_DATA,...live});
-        status.textContent = "LIVE";
+
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2,"0");
+        const mm = String(now.getMinutes()).padStart(2,"0");
+        const ss = String(now.getSeconds()).padStart(2,"0");
+
+        setSourceStatus("● Sheet 已同步 " + hh + ":" + mm + ":" + ss,"ok");
       }catch(err){
-        status.textContent = "";
+        console.error("Sheet sync failed:",err);
+        setSourceStatus("⚠ Sheet 同步失敗｜目前顯示備用資料","err");
       }
     }
 
     render(FALLBACK_DATA);
     refreshFromSheet();
-    setInterval(refreshFromSheet,30000);
+    sheetRefreshTimer = setInterval(refreshFromSheet,30000);
     window.addEventListener("resize",fitStage);
   </script>
 </body>
